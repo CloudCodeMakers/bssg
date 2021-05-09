@@ -30,3 +30,13 @@
 #result {
   display: none;
 }
+
+input:active,
+input:focus {
+  border-color: #ced4da !important;
+}
+
+*:active,
+*:focus {
+  box-shadow: none !important;
+}

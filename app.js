@@ -1,7 +1,9 @@
 const { TelegramClient } = gramjs;
 const { StringSession } = gramjs.sessions;
+const { Logger } = gramjs.extensions;
 
-var client;
+Logger.setLevel("none");
+
 var resolveCode;
 var resolvePassword;
 
@@ -15,19 +17,24 @@ const stopLoading = () => {
   document.querySelector("#loader").style.height = "0";
 };
 
+const hideAll = () => {
+  const children = document.querySelector(".container").children;
+
+  for (let child in children) {
+    child = children[child];
+
+    if (child && child.style) child.style.display = "none";
+  }
+};
+
 const showCodeInput = () => {
-  document.querySelector("#apiId").style.display = "none";
-  document.querySelector("#apiHash").style.display = "none";
-  document.querySelector("#init").style.display = "none";
-  document.querySelector("#number").style.display = "none";
-  document.querySelector("#start").style.display = "none";
+  hideAll();
   document.querySelector("#code").style.display = "block";
   document.querySelector("#codeb").style.display = "block";
 };
 
 const showPasswordInput = () => {
-  document.querySelector("#code").style.display = "none";
-  document.querySelector("#codeb").style.display = "none";
+  hideAll();
   document.querySelector("#password").style.display = "block";
   document.querySelector("#passwordb").style.display = "block";
 };
@@ -38,21 +45,31 @@ const showResult = () => {
   document.querySelector("#result").style.display = "block";
 };
 
-const init = () => {
-  client = new TelegramClient(
-    new StringSession(),
-    document.querySelector("#apiId").valueAsNumber,
-    document.querySelector("#apiHash").value,
-    { connectionRetries: 5 }
-  );
-  document.querySelector("#number").disabled = false;
-  document.querySelector("#start").disabled = false;
-};
-
 const start = async () => {
+  const apiId = document.querySelector("#apiId").valueAsNumber;
+  const apiHash = document.querySelector("#apiHash").value;
+  const number = document.querySelector("#number").value;
+
+  if (!apiId) {
+    document.querySelector("#apiId").focus();
+    return;
+  } else if (!apiHash) {
+    document.querySelector("#apiHash").focus();
+    return;
+  } else if (!number) {
+    document.querySelector("#number").focus();
+    return;
+  }
+
   startLoading();
+
+  const client = new TelegramClient(new StringSession(), apiId, apiHash, {
+    connectionRetries: 5,
+    useWSS: window.location.protocol == "https:",
+  });
+
   await client.start({
-    phoneNumber: document.querySelector("#number").value,
+    phoneNumber: number,
     phoneCode: () =>
       new Promise((resolve, _) => {
         resolveCode = resolve;
@@ -67,8 +84,10 @@ const start = async () => {
       }),
     onError: (error) => alert(error),
   });
+
   const message = `The generated string session by BSSG:\n\n${client.session.save()}`;
   await client.sendMessage("me", { message: message });
+
   showResult();
   stopLoading();
 };
